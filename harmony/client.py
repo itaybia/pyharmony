@@ -103,7 +103,7 @@ class HarmonyClient(sleekxmpp.ClientXMPP):
         action_cmd = ET.Element('oa')
         action_cmd.attrib['xmlns'] = 'connect.logitech.com'
         action_cmd.attrib['mime'] = ('harmony.engine?changeChannel')
-        cmd = 'channel=' + str(activity_id) + ':timestamp=0'
+        cmd = 'channel=' + str(channel) + ':timestamp=0'
         action_cmd.text = cmd
         iq_cmd.set_payload(action_cmd)
         result = iq_cmd.send(block=True)
