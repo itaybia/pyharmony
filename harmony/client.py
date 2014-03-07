@@ -90,13 +90,13 @@ class HarmonyClient(sleekxmpp.ClientXMPP):
         return action_cmd.text
         
     def change_channel(self, channel):
-        """Starts an activity.
+        """Changes a channel.
 
         Args:
-            activity_id: An int or string identifying the activity to start
+            channel: Channel number
 
         Returns:
-          A nested dictionary containing activities, devices, etc.
+          An HTTP 200 response (hopefully)
         """
         iq_cmd = self.Iq()
         iq_cmd['type'] = 'get'
