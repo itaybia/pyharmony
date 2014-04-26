@@ -7,6 +7,7 @@ import time
 
 import sleekxmpp
 from sleekxmpp.xmlstream import ET
+from sleekxmpp.exceptions import IqTimeout
 
 
 LOGGER = logging.getLogger(__name__)
@@ -151,10 +152,11 @@ class HarmonyClient(sleekxmpp.ClientXMPP):
         Returns:
           unknown
         """
-        """duration = 47320"""
-        duration = 20000
+        duration = 1
 
         iq_cmd = self.Iq()
+        """    type should be "render" but the XMPP implementation doesn't seem to know what to do with it. so instead we use 'get'
+               with low timeout value and surround it with try/except   """ 
         iq_cmd['type'] = 'get'
         action_cmd = ET.Element('oa')
         action_cmd.attrib['xmlns'] = 'connect.logitech.com'
@@ -162,18 +164,23 @@ class HarmonyClient(sleekxmpp.ClientXMPP):
         cmd = 'status=press:action={\"command\"::\"' + command_str + '\","type\"::\"IRCommand\",\"deviceId\"::\"' + str(device_id) + '\"}:timestamp=0'
         action_cmd.text = cmd
         iq_cmd.set_payload(action_cmd)
-        result = iq_cmd.send(block=True)
-        print (result)
-        payload = result.get_payload()
-        assert len(payload) == 1        
-        cmd = 'status=press:action={\"command\"::\"' + command_str + '\",\"type\"::\"IRCommand\",\"deviceId\"::\"' + str(device_id) + '\"}:timestamp=' + str(duration)
+        try:
+            result = iq_cmd.send(block=True, timeout=2)
+            print (result)
+        except IqTimeout:
+            pass      
+        cmd = 'status=release:action={\"command\"::\"' + command_str + '\",\"type\"::\"IRCommand\",\"deviceId\"::\"' + str(device_id) + '\"}:timestamp=' + str(duration)
         action_cmd.text = cmd
-        iq_cmd.set_payload(action_cmd)
-        result = iq_cmd.send(block=True)
-        print (result)
-        payload = result.get_payload()
-        assert len(payload) == 1        
-        action_cmd = payload[0]
+        iq_cmd.set_payload(action_cmd)        
+        try:
+            result = iq_cmd.send(block=True, timeout=2)
+            print (result)
+            payload = result.get_payload()
+            assert len(payload) == 1        
+            action_cmd = payload[0]
+        except IqTimeout:
+            action_cmd.text = 'IqTimeout'
+            pass        
         return action_cmd.text
 
 """
