@@ -1,5 +1,6 @@
 """Client class for connecting to the Logitech Harmony."""
 
+
 import json
 import logging
 import time
@@ -43,7 +44,19 @@ class HarmonyClient(sleekxmpp.ClientXMPP):
         action_cmd = payload[0]
         assert action_cmd.attrib['errorcode'] == '200'
         device_list = action_cmd.text
-        return json.loads(device_list)
+        config_dict = json.loads(device_list)
+        s = ''
+        for activity in config_dict['activity']:
+            if 'activityOrder' in activity:
+                s += 'Activity: ' + activity['label'] + ', #' + repr(activity['activityOrder']) + ', id: ' + activity['id'] + '\n'
+            else:
+                s += 'Activity: ' + activity['label'] + ', id: ' + activity['id'] + '\n'
+        
+        for device in config_dict['device']:
+            s += 'Device: ' + device['label'] + ', id: ' + device['id'] + '\n'
+    
+        return s        
+        #return config_json
 
     def get_current_activity(self):
         """Retrieves the current activity.
@@ -75,6 +88,7 @@ class HarmonyClient(sleekxmpp.ClientXMPP):
         Returns:
           A nested dictionary containing activities, devices, etc.
         """
+
         iq_cmd = self.Iq()
         iq_cmd['type'] = 'get'
         action_cmd = ET.Element('oa')
@@ -96,11 +110,69 @@ class HarmonyClient(sleekxmpp.ClientXMPP):
           True.
         """
         activity = self.get_current_activity()
-        print activity
+        print(activity)
         if activity != -1:
-            print "OFF"
+            print("OFF")
             self.start_activity(-1)
         return True
+
+
+
+    def send_button_press_to_device(self, command_str, device_id):
+        """Starts an activity.
+
+        Args:
+            command_str: a string identifying the command to be sent
+            device_id: An int identifying the device to send the command to
+
+        Returns:
+          unknown
+        """
+        """duration = 47320"""
+        duration = 20000
+
+        iq_cmd = self.Iq()
+        iq_cmd['type'] = 'get'
+        action_cmd = ET.Element('oa')
+        action_cmd.attrib['xmlns'] = 'connect.logitech.com'
+        action_cmd.attrib['mime'] = ('harmony.engine?holdAction')
+        cmd = 'status=press:action={\"command\"::\"' + command_str + '\","type\"::\"IRCommand\",\"deviceId\"::\"' + str(device_id) + '\"}:timestamp=0'
+        action_cmd.text = cmd
+        iq_cmd.set_payload(action_cmd)
+        result = iq_cmd.send(block=True)
+        print (result)
+        payload = result.get_payload()
+        assert len(payload) == 1        
+        cmd = 'status=press:action={\"command\"::\"' + command_str + '\",\"type\"::\"IRCommand\",\"deviceId\"::\"' + str(device_id) + '\"}:timestamp=' + str(duration)
+        action_cmd.text = cmd
+        iq_cmd.set_payload(action_cmd)
+        result = iq_cmd.send(block=True)
+        print (result)
+        payload = result.get_payload()
+        assert len(payload) == 1        
+        action_cmd = payload[0]
+        return action_cmd.text
+
+"""
+<iq type="startActivity" id="3580686812" from="757d218d-72ce-4be7-9ad4-af369434c5fd">
+    <oa xmlns="connect.logitech.com" mime="vnd.logitech.harmony/vnd.logitech.harmony.engine?startActivity">
+        activityId=6932433:timestamp=0
+    </oa>
+</iq>
+
+<iq type="render" id="93399868" from="757d218d-72ce-4be7-9ad4-af369434c5fd">
+    <oa xmlns="connect.logitech.com" mime="vnd.logitech.harmony/vnd.logitech.harmony.engine?holdAction">
+        status=press:action={"command"::"PowerOff","type"::"IRCommand","deviceId"::"16132094"}:timestamp=0
+    </oa>
+</iq>
+
+<iq type="render" id="2793077208" from="757d218d-72ce-4be7-9ad4-af369434c5fd">
+    <oa xmlns="connect.logitech.com" mime="vnd.logitech.harmony/vnd.logitech.harmony.engine?holdAction">
+        status=release:action={"command"::"InputHdmi1","type"::"IRCommand","deviceId"::"16132094"}:timestamp=47317
+    </oa>
+</iq>
+"""
+
 
 def create_and_connect_client(ip_address, port, token):
     """Creates a Harmony client and initializes session.
