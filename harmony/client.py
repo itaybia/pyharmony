@@ -102,6 +102,29 @@ class HarmonyClient(sleekxmpp.ClientXMPP):
         assert len(payload) == 1
         action_cmd = payload[0]
         return action_cmd.text
+        
+    def change_channel(self, channel):
+        """Changes a channel.
+
+        Args:
+            channel: Channel number
+
+        Returns:
+          An HTTP 200 response (hopefully)
+        """
+        iq_cmd = self.Iq()
+        iq_cmd['type'] = 'get'
+        action_cmd = ET.Element('oa')
+        action_cmd.attrib['xmlns'] = 'connect.logitech.com'
+        action_cmd.attrib['mime'] = ('harmony.engine?changeChannel')
+        cmd = 'channel=' + str(channel) + ':timestamp=0'
+        action_cmd.text = cmd
+        iq_cmd.set_payload(action_cmd)
+        result = iq_cmd.send(block=True)
+        payload = result.get_payload()
+        assert len(payload) == 1
+        action_cmd = payload[0]
+        return action_cmd.text
 
     def turn_off(self):
         """Turns the system off if it's on, otherwise it does nothing.
